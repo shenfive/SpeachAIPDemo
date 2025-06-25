@@ -30,7 +30,7 @@ enum RecognitionLanguage: String, CaseIterable, Identifiable {
 
 struct ContentView: View {
     @StateObject private var speechRecognizer = SpeechRecognizer()
-    @State private var isRecording = false
+    @State private var isRecording = true
     @State private var selectedLanguage: RecognitionLanguage = .mandarinTW
 
     var body: some View {
@@ -43,7 +43,15 @@ struct ContentView: View {
             .pickerStyle(.segmented)
             .padding()
             .onChange(of: selectedLanguage) { newLang in
-                $speechRecognizer.localeIdentifier = newLang.rawValue
+                selectedLanguage = RecognitionLanguage(rawValue: newLang.rawValue) ?? .mandarinTW
+                speechRecognizer.setLanguage(identifier: newLang.rawValue)
+                print(isRecording)
+                if(isRecording){
+                    isRecording = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.9){
+                        isRecording = true
+                    }
+                }
             }
 
             Toggle("啟用語音輸入", isOn: $isRecording)
@@ -63,7 +71,8 @@ struct ContentView: View {
         }
         .onAppear {
             speechRecognizer.requestAuthorization()
-            speechRecognizer.localeIdentifier = selectedLanguage.rawValue
+            speechRecognizer.setLanguage(identifier: selectedLanguage.rawValue)
+            speechRecognizer.startRecording()
         }
     }
 }

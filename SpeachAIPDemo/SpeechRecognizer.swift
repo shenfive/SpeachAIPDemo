@@ -10,25 +10,32 @@ import Speech
 import AVFoundation
 
 class SpeechRecognizer: NSObject, ObservableObject {
-    private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "zh-TW"))
+    private var speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "zh-TW"))
     private var recognitionTask: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
-    private let request = SFSpeechAudioBufferRecognitionRequest()
+    private var request: SFSpeechAudioBufferRecognitionRequest?
     
     @Published var transcript = ""
+    
+    func setLanguage(identifier:String){
+        speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: identifier))
+    }
     
     func requestAuthorization() {
         SFSpeechRecognizer.requestAuthorization { _ in }
     }
     
     func startRecording() {
+        request = SFSpeechAudioBufferRecognitionRequest()
+        guard let request = request else { return }
+        
         guard let recognizer = speechRecognizer, recognizer.isAvailable else { return }
 
         let node = audioEngine.inputNode
         let format = node.outputFormat(forBus: 0)
 
         node.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
-            self.request.append(buffer)
+            self.request?.append(buffer)
         }
 
         audioEngine.prepare()
@@ -47,6 +54,8 @@ class SpeechRecognizer: NSObject, ObservableObject {
     }
 
     func stopRecording() {
+        request?.endAudio()
+        request = nil
         recognitionTask?.cancel()
         recognitionTask = nil
         audioEngine.stop()
